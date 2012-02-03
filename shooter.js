@@ -1,6 +1,6 @@
 'use strict';
 
-var shooter = function (jaws) {
+var shooter = function (jaws, machine) {
     function random(max) {
 	return Math.floor(Math.random() * (max + 1));
     };
@@ -16,9 +16,10 @@ var shooter = function (jaws) {
     var player_speed = 10; // pixels per update
     var near_distance = 150; // pixels
     var very_near_distance = 10; // pixels
-    var enemy_speed_multiplier = 0.25;
+    var enemy_speed_multiplier = 0.10;
     var enemies_count = 10;
     var cities_count = 10;
+    var damage_refractory_period = 40; // updates
 
     function Target(x, y) {
 	if (this.x && this.y) {
@@ -50,10 +51,15 @@ var shooter = function (jaws) {
 	this.target = new Target();
 	this.alive = true;
 	this.gun_refractory_state = 0;
+	this.damage_refractory_state = 0;
     };
     Ship.prototype = {
 	draw: function () {
 	    if (!this.alive) {
+		return;
+	    }
+	    if (wrap(Math.floor(this.damage_refractory_state / 5), 2) !== 0) {
+		// blink in and out of existence
 		return;
 	    }
 	    // this.target.draw();
@@ -93,6 +99,10 @@ var shooter = function (jaws) {
 	    this.alive = false;
 	},
 	steer: function () {
+	    if (this.damage_refractory_state > 0) {
+		this.damage_refractory_state -= 1;
+		return;
+	    } 
 	    if (jaws.pressed('up')) { this.y -= this.speed; }
 	    if (jaws.pressed('down')) { this.y += this.speed; }
 	    if (jaws.pressed('left')) { this.x -= this.speed; }
@@ -256,6 +266,7 @@ var shooter = function (jaws) {
 		this.cities[i].draw();
 	    }
 	    jaws.context.font = '24pt Inconsolata';
+	    jaws.context.textAlign = 'left';
 	    jaws.context.fillStyle = 'white';
 	    jaws.context.fillText(this.points, 10, 50);
 	},
@@ -278,7 +289,6 @@ var shooter = function (jaws) {
 	    for (var i in this.enemies) {
 		for (var j in this.projectiles) {
 		    if (this.enemies[i].very_near(this.projectiles[j])) {
-			// TODO: play a sound?
 			this.enemies[i].kill();
 		    }
 		}
@@ -290,7 +300,13 @@ var shooter = function (jaws) {
 		if (this.enemies[i].very_near(this.player)) {
 		    // TODO: play a sound?
 		    // they don't kill, but it's not good
-		    this.player.gun_refractory_state = gun_refractory_period;
+		    this.player.damage_refractory_state = damage_refractory_period
+		    var enemy = new Ship(enemy_height, enemy_width);
+		    enemy.angle = (2*Math.PI/360) * random(360);
+		    enemy.x = random(jaws.width);
+		    enemy.y = -100;
+		    enemy.speed *= enemy_speed_multiplier;
+		    this.enemies[i] = enemy;
 		}
 	    }
 	    for (var i in this.enemies) {
@@ -303,7 +319,10 @@ var shooter = function (jaws) {
 	    this.cities = this.cities.filter(function (it) {
 		return it.alive;
 	    });
-	    if (this.enemies.length === 0) {
+	    if (this.cities.length === 0) {
+		alert('loss');
+		machine.next_state();
+	    } else if (this.enemies.length === 0) {
 		// TODO: play a sound?
 		this.points += this.cities.length;
 		this.spawn();
