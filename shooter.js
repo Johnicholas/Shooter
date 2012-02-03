@@ -9,7 +9,8 @@ var shooter = function (jaws) {
     var particle_lifetime = 100; // milliseconds
     var spaceship_height = 27.5;
     var spaceship_width = 20;
-    var projectile_speed = 10; // pixels per update
+    var projectile_speed = 1; // pixels per update
+    var gun_refractory_period = 10; // updates
 
     function Player() {
 	this.x = jaws.width / 2;
@@ -42,7 +43,6 @@ var shooter = function (jaws) {
 	    jaws.context.fillRect(0, 0, jaws.width, jaws.height);
 	}
     };
-    /*
     function Particle(origin) {
 	this.x = origin.x;
 	this.y = origin.y;
@@ -79,6 +79,8 @@ var shooter = function (jaws) {
 	    for (var i in this.particles) {
 		this.particles[i].draw();
 	    }
+	    // jaws.context.fillStyle = 'white';
+	    // jaws.context.fillRect(this.x, this.y, 10, 10);
 	},
 	update: function () {
 	    if (this.x < 0 || this.x > jaws.width) {
@@ -100,7 +102,6 @@ var shooter = function (jaws) {
 	    }
 	}
     };
-    */
 
     return {
 	setup: function () {
@@ -108,13 +109,14 @@ var shooter = function (jaws) {
 	    this.player = new Player();
 	    this.background = new Background();
 	    this.projectiles = [];
+	    this.gun_refractory_state = 0;
 	},
 	draw: function () {
 	    this.background.draw();
 	    this.player.draw();
-	    //for (var i in this.projectiles) {
-	    //this.projectiles[i].draw();
-	//}
+	    for (var i in this.projectiles) {
+		this.projectiles[i].draw();
+	    }
 	},
 	update: function () {
 	    if (jaws.pressed('up')) {
@@ -129,12 +131,18 @@ var shooter = function (jaws) {
 	    if (jaws.pressed('right')) {
 		this.player.x += 10;
 	    }
-	    //if (jaws.pressed('space')) {
-	    //this.projectiles.push(new Projectile(this.player));
-	//}
-	    //for (var i in this.projectiles) {
-	    //this.projectiles[i].update();
-	    //}
+	    if (this.gun_refractory_state > 0) {
+		this.gun_refractory_state -= 1;
+	    } else if (jaws.pressed('space')) {
+		this.projectiles.push(new Projectile(this.player));
+		this.gun_refractory_state = gun_refractory_period;
+	    }
+	    for (var i in this.projectiles) {
+		this.projectiles[i].update();
+	    }
+	    this.projectiles = this.projectiles.filter(function (it) {
+		return it.alive;
+	    });
 	}
     }
 };
