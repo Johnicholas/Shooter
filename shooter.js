@@ -16,7 +16,7 @@ var shooter = function (jaws, machine) {
     var player_speed = 10; // pixels per update
     var near_distance = 150; // pixels
     var very_near_distance = 10; // pixels
-    var enemy_speed_multiplier = 0.10;
+    var enemy_speed_multiplier = 0.20;
     var enemies_count = 10;
     var cities_count = 10;
     var damage_refractory_period = 40; // updates
@@ -58,7 +58,7 @@ var shooter = function (jaws, machine) {
 	    if (!this.alive) {
 		return;
 	    }
-	    if (wrap(Math.floor(this.damage_refractory_state / 5), 2) !== 0) {
+	    if (wrap(Math.floor(this.damage_refractory_state / 10), 2) !== 0) {
 		// blink in and out of existence
 		return;
 	    }
@@ -320,7 +320,6 @@ var shooter = function (jaws, machine) {
 		return it.alive;
 	    });
 	    if (this.cities.length === 0) {
-		alert('loss');
 		machine.next_state();
 	    } else if (this.enemies.length === 0) {
 		// TODO: play a sound?
